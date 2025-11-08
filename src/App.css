@@ -1,0 +1,37 @@
+/* src/App.css */
+
+:root {
+  /* Cores Fornecidas */
+  --color-primary-button: #2E86DE;
+  /* Botões de Filtro */
+  --color-post-background: #D9D9D9;
+  /* Fundo de Posts */
+  --color-text-highlight: #636E72;
+  /* Destaques de Texto */
+  --color-create-button: #00B894;
+  /* Botões de Criação */
+  --color-background: #FFF;
+  /* Background */
+}
+
+body {
+  background-color: var(--color-background);
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: #333;
+  /* Cor básica do texto */
+}
+
+
+/* Garante que o CSS do Vite não atrapalhe */
+#root,
+.appWrapper {
+  min-height: 100vh;
+  width: 100%;
+  background-color: rgb(240, 247, 245);
+}
+
+appWrapper>div {
+  /*  afeta diretamente o componente FeedPage */
+  width: 100%;
+}

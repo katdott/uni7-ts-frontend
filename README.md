@@ -59,11 +59,14 @@ O projeto requer que o Backend e o Frontend sejam iniciados separadamente.
 
 ### 2.2. ⚛️ Configuração do Frontend (React/Vite - `uni7-ts-frontend`)
 
-1.  **Dependências:**
+1.  **Dependências Básicas:** Instale as dependências principais, incluindo o cliente HTTP `axios`.
+
     ```bash
     cd uni7-ts-frontend
     npm install
+    npm install axios
     ```
+
 2.  **Execução do Frontend:**
     ```bash
     npm run dev

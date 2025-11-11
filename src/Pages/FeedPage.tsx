@@ -96,7 +96,20 @@ const FeedPage: React.FC = () => {
       <h2>{activeCategory.toUpperCase()} ({items.length})</h2>
 
       {loading && <p>Carregando...</p>}
-      {error && <p style={{ color: 'red' }}>Erro ao carregar o feed: {error}</p>}
+      {error && (
+        <div style={{ 
+          color: 'red', 
+          backgroundColor: '#ffe6e6', 
+          padding: '15px', 
+          borderRadius: '5px',
+          border: '1px solid #ff9999',
+          marginBottom: '15px'
+        }}>
+          <strong>❌ Erro ao carregar o feed:</strong>
+          <p>{error}</p>
+          <small>Dica: Verifique se o backend está rodando e conectado ao banco de dados.</small>
+        </div>
+      )}
 
       <div className={styles.contentGrid}>
         {!loading && items.length > 0 ? (

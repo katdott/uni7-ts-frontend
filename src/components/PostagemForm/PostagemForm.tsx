@@ -101,7 +101,18 @@ const PostagemForm: React.FC<Props> = ({ onSuccess }) => {
                 {loading ? 'Postando...' : `Postar ${formData.Categoria === 'denuncias' ? 'Denúncia' : 'Aviso'}`}
             </button>
             
-            {error && <p style={{ color: 'red' }}>Erro: {error}</p>}
+            {error && (
+                <div style={{ 
+                    color: 'red', 
+                    backgroundColor: '#ffe6e6', 
+                    padding: '10px', 
+                    borderRadius: '5px',
+                    border: '1px solid #ff9999',
+                    marginTop: '10px'
+                }}>
+                    <strong>❌ Erro:</strong> {error}
+                </div>
+            )}
         </form>
     );
 };

@@ -42,7 +42,7 @@ const FeedItem: React.FC<FeedItemProps> = ({ item, category }) => {
       <p>{post.Descricao}</p>
       <small>
         Postado por:
-        <strong> {post.usuario?.NomeUsuario || 'Usuário Desconhecido'}</strong> (ID {post.IdUsuario})
+        <strong> {post.usuario.NomeUsuario}</strong> (ID {post.IdUsuario})
         {' '}em {new Date(post.Inclusao).toLocaleDateString()}
       </small>
     </div>

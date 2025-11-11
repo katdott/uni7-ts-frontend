@@ -9,7 +9,7 @@ export interface Aviso {
   Ativa: boolean;
   Inclusao: string;
   Atualizacao: string;
-  usuario?: {
+  usuario: {
     IdUsuario: number;
     NomeUsuario: string;
   };

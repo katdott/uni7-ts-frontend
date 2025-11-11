@@ -3,7 +3,7 @@ import api from '../api/api';
 import type { Usuario, CreateUsuarioDTO, UpdateUsuarioDTO } from '../types/usuario';
 
 export class UsuarioService {
-  private static baseUrl = '/usuario';
+  private static baseUrl = '/usuarios';
 
   // Buscar todos os usuários
   static async getAll(): Promise<Usuario[]> {

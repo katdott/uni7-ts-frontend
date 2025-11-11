@@ -3,7 +3,7 @@ import api from '../api/api';
 import type { Denuncia, CreateDenunciaDTO, UpdateDenunciaDTO } from '../types/denuncia';
 
 export class DenunciaService {
-  private static baseUrl = '/denuncia';
+  private static baseUrl = '/denuncias';
 
   // Buscar todas as denúncias
   static async getAll(): Promise<Denuncia[]> {

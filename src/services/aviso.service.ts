@@ -3,7 +3,7 @@ import api from '../api/api';
 import type { Aviso, CreateAvisoDTO, UpdateAvisoDTO } from '../types/aviso';
 
 export class AvisoService {
-  private static baseUrl = '/aviso';
+  private static baseUrl = '/avisos';
 
   // Buscar todos os avisos
   static async getAll(): Promise<Aviso[]> {

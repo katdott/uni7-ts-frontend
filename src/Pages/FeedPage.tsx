@@ -1,44 +1,46 @@
 // src/Pages/FeedPage.tsx
 
 import React, { useState, useEffect } from 'react';
-import styles from './FeedPage.module.css'; // Estilos da página
+import styles from './FeedPage.module.css';
 
-// IMPORTAÇÕES DE COMPONENTES (como são valores/funções exportados como default, não precisam de 'type')
-import PostagemForm from '../components/PostagemForm/PostagemForm'; // Formulário
-import FeedItem from '../components/FeedItem/FeedItem';       // Item de exibição
+// Componentes
+import PostagemForm from '../components/PostagemForm/PostagemForm';
+import FeedItem from '../components/FeedItem/FeedItem';
 
-// IMPORTAÇÕES DE VALORES (Funções)
-import { listUsuarios } from '../services/UsuarioService';
-import { fetchFeedItems } from '../services/PostagemService';
+// Services
+import { getAllUsuarios } from '../features/usuario/usuario.service';
+import { getAllDenuncias } from '../features/denuncia/denuncia.service';
+import { getAllAvisos } from '../features/aviso/aviso.service';
 
-// IMPORTAÇÕES DE TIPOS/INTERFACES (Devem usar 'type')
-import type { Usuario } from '../services/UsuarioService';
-import type { Postagem, Category } from '../services/PostagemService';
+// Types
+import type { Usuario, Denuncia, Aviso, Category } from '../types';
 
 const FeedPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<Category>('denuncias');
-  const [items, setItems] = useState<Postagem[] | Usuario[]>([]);
+  const [items, setItems] = useState<Usuario[] | Denuncia[] | Aviso[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // --- Função para Carregar Itens do Feed ---
+  // Função para carregar itens do feed
   const fetchItems = async (category: Category) => {
     setLoading(true);
     setError(null);
     try {
-      let data: any[] = [];
+      let data: Usuario[] | Denuncia[] | Aviso[] = [];
 
       // Lógica de busca com base na categoria
       if (category === 'usuarios') {
-        data = await listUsuarios(); // Usa o serviço de Usuários (GET /usuarios)
-      } else {
-        data = await fetchFeedItems(category); // Usa o serviço genérico (GET /denuncias ou /avisos)
+        data = await getAllUsuarios();
+      } else if (category === 'denuncias') {
+        data = await getAllDenuncias();
+      } else if (category === 'avisos') {
+        data = await getAllAvisos();
       }
 
       setItems(data);
     } catch (err: any) {
-      setError(err.message);
-      setItems([]); // Limpa a lista em caso de erro
+      setError(err.message || 'Erro ao carregar dados');
+      setItems([]);
     } finally {
       setLoading(false);
     }

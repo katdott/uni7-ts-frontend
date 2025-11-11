@@ -1,8 +1,14 @@
-// Exports centralizados de todos os types
+// src/types/index.ts
+// Barrel export principal para todos os tipos
 
-export * from './usuario.types';
-export * from './denuncia.types';
-export * from './aviso.types';
+// Aviso
+export type { Aviso, CreateAvisoDTO, UpdateAvisoDTO } from './aviso';
+
+// Denuncia
+export type { Denuncia, CreateDenunciaDTO, UpdateDenunciaDTO } from './denuncia';
+
+// Usuario
+export type { Usuario, CreateUsuarioDTO, UpdateUsuarioDTO } from './usuario';
 
 // Types auxiliares
 export type Category = 'usuarios' | 'denuncias' | 'avisos';

@@ -38,8 +38,9 @@ const FeedPage: React.FC = () => {
       }
 
       setItems(data);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar dados');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar dados';
+      setError(errorMessage);
       setItems([]);
     } finally {
       setLoading(false);
@@ -99,13 +100,22 @@ const FeedPage: React.FC = () => {
 
       <div className={styles.contentGrid}>
         {!loading && items.length > 0 ? (
-          items.map((item: any) => (
-            <FeedItem
-              key={item.IdUsuario || item.IdDenuncia || item.IdAviso}
-              item={item}
-              category={activeCategory}
-            />
-          ))
+          items.map((item: Usuario | Denuncia | Aviso) => {
+            // Gera key única baseada na categoria e ID correto
+            const key = activeCategory === 'usuarios' 
+              ? `usuario-${(item as Usuario).IdUsuario}` 
+              : activeCategory === 'denuncias'
+              ? `denuncia-${(item as Denuncia).IdDenuncia}`
+              : `aviso-${(item as Aviso).IdAviso}`;
+            
+            return (
+              <FeedItem
+                key={key}
+                item={item}
+                category={activeCategory}
+              />
+            );
+          })
         ) : (
           !loading && !error && <p>Nenhum item encontrado nesta categoria.</p>
         )}

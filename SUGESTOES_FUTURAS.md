@@ -359,4 +359,3 @@ Este documento contém sugestões de melhorias e novas funcionalidades para o si
 
 **Última atualização**: Novembro 2025
 
-**Contribua**: Sinta-se livre para adicionar suas próprias sugestões a este documento!

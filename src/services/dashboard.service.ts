@@ -22,7 +22,7 @@ export interface DashboardStats {
 
 export const DashboardService = {
   async getStats(): Promise<DashboardStats> {
-    const response = await api.get<DashboardStats>('/uni7/dashboard/stats');
+    const response = await api.get<DashboardStats>('/dashboard/stats');
     return response.data;
   },
 };

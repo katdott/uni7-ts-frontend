@@ -43,13 +43,28 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await AuthService.login({
+      const response = await AuthService.login({
         NomeUsuario: formData.nomeUsuario,
         Senha: formData.senha,
       });
 
+      // Decodificar token para extrair role
+      const token = response.token;
+      let role: any = 'Morador'; // default
+      
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          role = payload.role || 'Morador';
+        } catch (e) {
+          console.error('Erro ao decodificar token:', e);
+        }
+      }
+
       login({
-        nomeUsuario: user.NomeUsuario,
+        nomeUsuario: response.NomeUsuario,
+        email: response.Email,
+        role,
         loggedIn: true,
       });
 

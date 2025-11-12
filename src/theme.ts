@@ -1,53 +1,101 @@
 // src/theme.ts
 'use client';
 
-import { createTheme } from '@mui/material/styles';
+import { createTheme, PaletteMode } from '@mui/material/styles';
 
 // Tema profissional para Sistema de Gestão Condominial
-export const theme = createTheme({
+export const getTheme = (mode: PaletteMode) => createTheme({
   palette: {
-    primary: {
-      main: '#1565C0', // Azul profissional corporativo
-      light: '#42A5F5',
-      dark: '#0D47A1',
-      contrastText: '#fff',
-    },
-    secondary: {
-      main: '#2E7D32', // Verde empresarial para sucesso/ações positivas
-      light: '#4CAF50',
-      dark: '#1B5E20',
-      contrastText: '#fff',
-    },
-    error: {
-      main: '#D32F2F', // Vermelho para denúncias/alertas
-      light: '#EF5350',
-      dark: '#C62828',
-    },
-    warning: {
-      main: '#F57C00', // Laranja para avisos importantes
-      light: '#FF9800',
-      dark: '#E65100',
-    },
-    info: {
-      main: '#0288D1',
-      light: '#03A9F4',
-      dark: '#01579B',
-    },
-    success: {
-      main: '#388E3C',
-      light: '#4CAF50',
-      dark: '#2E7D32',
-    },
-    text: {
-      primary: '#263238', // Texto escuro profissional
-      secondary: '#546E7A', // Texto secundário suave
-      disabled: '#90A4AE',
-    },
-    background: {
-      default: '#F5F7FA', // Fundo suave e clean
-      paper: '#FFFFFF',
-    },
-    divider: '#E0E0E0',
+    mode,
+    ...(mode === 'light' ? {
+      // Tema Claro
+      primary: {
+        main: '#1565C0',
+        light: '#42A5F5',
+        dark: '#0D47A1',
+        contrastText: '#fff',
+      },
+      secondary: {
+        main: '#2E7D32',
+        light: '#4CAF50',
+        dark: '#1B5E20',
+        contrastText: '#fff',
+      },
+      error: {
+        main: '#D32F2F',
+        light: '#EF5350',
+        dark: '#C62828',
+      },
+      warning: {
+        main: '#F57C00',
+        light: '#FF9800',
+        dark: '#E65100',
+      },
+      info: {
+        main: '#0288D1',
+        light: '#03A9F4',
+        dark: '#01579B',
+      },
+      success: {
+        main: '#388E3C',
+        light: '#4CAF50',
+        dark: '#2E7D32',
+      },
+      text: {
+        primary: '#263238',
+        secondary: '#546E7A',
+        disabled: '#90A4AE',
+      },
+      background: {
+        default: '#F5F7FA',
+        paper: '#FFFFFF',
+      },
+      divider: '#E0E0E0',
+    } : {
+      // Tema Escuro
+      primary: {
+        main: '#42A5F5',
+        light: '#64B5F6',
+        dark: '#1565C0',
+        contrastText: '#000',
+      },
+      secondary: {
+        main: '#66BB6A',
+        light: '#81C784',
+        dark: '#388E3C',
+        contrastText: '#000',
+      },
+      error: {
+        main: '#EF5350',
+        light: '#E57373',
+        dark: '#D32F2F',
+      },
+      warning: {
+        main: '#FFA726',
+        light: '#FFB74D',
+        dark: '#F57C00',
+      },
+      info: {
+        main: '#29B6F6',
+        light: '#4FC3F7',
+        dark: '#0288D1',
+      },
+      success: {
+        main: '#66BB6A',
+        light: '#81C784',
+        dark: '#388E3C',
+      },
+      text: {
+        primary: '#ECEFF1',
+        secondary: '#B0BEC5',
+        disabled: '#78909C',
+      },
+      background: {
+        default: '#121212',
+        paper: '#1E1E1E',
+      },
+      divider: '#37474F',
+    }),
   },
   typography: {
     fontFamily: [

@@ -1,15 +1,25 @@
 // src/app/layout.tsx
-import type { Metadata } from 'next';
-import { ThemeProvider } from '@mui/material/styles';
+'use client';
+
+import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import { theme } from '../theme';
+import { getTheme } from '../theme';
 import { Navbar } from '../components/Layout/Navbar/Navbar';
+import { ThemeProvider, useThemeMode } from '../hooks/useThemeMode';
 
-export const metadata: Metadata = {
-  title: 'Sistema Uni7',
-  description: 'Gestão de Avisos e Denúncias',
-};
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const { mode } = useThemeMode();
+  const theme = getTheme(mode);
+
+  return (
+    <MuiThemeProvider theme={theme}>
+      <CssBaseline />
+      <Navbar />
+      <main>{children}</main>
+    </MuiThemeProvider>
+  );
+}
 
 export default function RootLayout({
   children,
@@ -20,10 +30,8 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body style={{ margin: 0 }}>
         <AppRouterCacheProvider>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <Navbar />
-            <main>{children}</main>
+          <ThemeProvider>
+            <LayoutContent>{children}</LayoutContent>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

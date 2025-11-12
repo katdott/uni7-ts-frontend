@@ -3,3 +3,4 @@
 
 export type { Usuario } from './Usuario.model';
 export type { CreateUsuarioDTO, UpdateUsuarioDTO } from './IUsuarioDTO';
+export type { IUpdateProfileDTO, IUpdateProfileResponseDTO } from './IUpdateProfileDTO';

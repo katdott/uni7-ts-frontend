@@ -51,6 +51,8 @@ import ErrorIcon from '@mui/icons-material/Error';
 import { DenunciaService } from '../../services/denuncia.service';
 import type { Denuncia, CreateDenunciaDTO, UpdateDenunciaDTO } from '../../types/denuncia';
 import { ProtectedRoute } from '@/components/ProtectedRoute/ProtectedRoute';
+import type { Categoria } from '@/types/categoria';
+import { CategoriaService } from '@/services/categoria.service';
 
 type DenunciaStatus = 'Aberta' | 'Em análise' | 'Resolvida' | 'Rejeitada';
 type DenunciaPrioridade = 'Baixa' | 'Média' | 'Alta' | 'Urgente';
@@ -63,19 +65,27 @@ interface ExtendedDenuncia extends Denuncia {
 export default function DenunciasPage() {
   const [denuncias, setDenuncias] = useState<ExtendedDenuncia[]>([]);
   const [filteredDenuncias, setFilteredDenuncias] = useState<ExtendedDenuncia[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDenuncia, setEditingDenuncia] = useState<ExtendedDenuncia | null>(null);
-  const [formData, setFormData] = useState({ Nome: '', Descricao: '', IdUsuario: '1' });
+  const [formData, setFormData] = useState({ 
+    Nome: '', 
+    Descricao: '', 
+    IdCategoria: undefined as number | undefined,
+    Prioridade: 'Média' as DenunciaPrioridade 
+  });
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
 
   useEffect(() => {
     loadDenuncias();
+    loadCategorias();
   }, []);
 
   useEffect(() => {
@@ -92,8 +102,21 @@ export default function DenunciasPage() {
       filtered = filtered.filter((d) => d.prioridade === filterPriority);
     }
 
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter((d) => d.IdCategoria?.toString() === filterCategory);
+    }
+
     setFilteredDenuncias(filtered);
-  }, [searchTerm, filterStatus, filterPriority, denuncias]);
+  }, [searchTerm, filterStatus, filterPriority, filterCategory, denuncias]);
+
+  const loadCategorias = async () => {
+    try {
+      const data = await CategoriaService.getAll();
+      setCategorias(data);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+    }
+  };
 
   const loadDenuncias = async () => {
     try {
@@ -120,14 +143,20 @@ export default function DenunciasPage() {
         await DenunciaService.update(editingDenuncia.IdDenuncia, updateData);
       } else {
         const createData: CreateDenunciaDTO = {
-          IdUsuario: parseInt(formData.IdUsuario),
           Nome: formData.Nome,
           Descricao: formData.Descricao,
+          IdCategoria: formData.IdCategoria,
+          Prioridade: formData.Prioridade,
         };
         await DenunciaService.create(createData);
       }
       setIsModalOpen(false);
-      setFormData({ Nome: '', Descricao: '', IdUsuario: '1' });
+      setFormData({ 
+        Nome: '', 
+        Descricao: '', 
+        IdCategoria: undefined,
+        Prioridade: 'Média' 
+      });
       setEditingDenuncia(null);
       loadDenuncias();
     } catch (err) {
@@ -141,7 +170,8 @@ export default function DenunciasPage() {
     setFormData({
       Nome: denuncia.Nome,
       Descricao: denuncia.Descricao,
-      IdUsuario: denuncia.IdUsuario.toString(),
+      IdCategoria: denuncia.IdCategoria || undefined,
+      Prioridade: denuncia.prioridade || 'Média',
     });
     setIsModalOpen(true);
     handleMenuClose(denuncia.IdDenuncia);
@@ -162,7 +192,12 @@ export default function DenunciasPage() {
 
   const openCreateModal = () => {
     setEditingDenuncia(null);
-    setFormData({ Nome: '', Descricao: '', IdUsuario: '1' });
+    setFormData({ 
+      Nome: '', 
+      Descricao: '', 
+      IdCategoria: undefined,
+      Prioridade: 'Média' 
+    });
     setIsModalOpen(true);
   };
 
@@ -293,6 +328,31 @@ export default function DenunciasPage() {
                     <MenuItem value="Urgente">Urgente</MenuItem>
                   </Select>
                 </FormControl>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>Categoria</InputLabel>
+                  <Select
+                    value={filterCategory}
+                    label="Categoria"
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                  >
+                    <MenuItem value="all">Todas</MenuItem>
+                    {categorias.map((cat) => (
+                      <MenuItem key={cat.IdCategoria} value={cat.IdCategoria.toString()}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              bgcolor: cat.Cor || '#757575'
+                            }}
+                          />
+                          {cat.Nome}
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <Divider orientation="vertical" flexItem />
                 <ToggleButtonGroup
                   value={viewMode}
@@ -403,6 +463,17 @@ export default function DenunciasPage() {
                             fontWeight: 600,
                           }}
                         />
+                        {denuncia.categoria && (
+                          <Chip
+                            label={denuncia.categoria.Nome}
+                            size="small"
+                            sx={{
+                              backgroundColor: denuncia.categoria.Cor || '#757575',
+                              color: '#fff',
+                              fontWeight: 600,
+                            }}
+                          />
+                        )}
                       </Box>
 
                       <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5, color: 'text.primary' }}>
@@ -518,16 +589,6 @@ export default function DenunciasPage() {
             </DialogTitle>
             <DialogContent>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
-                {!editingDenuncia && (
-                  <TextField
-                    label="ID do Usuário"
-                    type="number"
-                    value={formData.IdUsuario}
-                    onChange={(e) => setFormData({ ...formData, IdUsuario: e.target.value })}
-                    required
-                    fullWidth
-                  />
-                )}
                 <TextField
                   label="Título da Denúncia"
                   value={formData.Nome}
@@ -546,6 +607,42 @@ export default function DenunciasPage() {
                   fullWidth
                   placeholder="Descreva a ocorrência com detalhes..."
                 />
+                
+                {!editingDenuncia && (
+                  <>
+                    <FormControl fullWidth>
+                      <InputLabel>Categoria</InputLabel>
+                      <Select
+                        value={formData.IdCategoria || ''}
+                        onChange={(e) => setFormData({ ...formData, IdCategoria: e.target.value as number })}
+                        label="Categoria"
+                      >
+                        <MenuItem value="">
+                          <em>Nenhuma</em>
+                        </MenuItem>
+                        {categorias.map((cat) => (
+                          <MenuItem key={cat.IdCategoria} value={cat.IdCategoria}>
+                            {cat.Icone} {cat.Nome}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <FormControl fullWidth>
+                      <InputLabel>Prioridade</InputLabel>
+                      <Select
+                        value={formData.Prioridade}
+                        onChange={(e) => setFormData({ ...formData, Prioridade: e.target.value as DenunciaPrioridade })}
+                        label="Prioridade"
+                      >
+                        <MenuItem value="Baixa">Baixa</MenuItem>
+                        <MenuItem value="Média">Média</MenuItem>
+                        <MenuItem value="Alta">Alta</MenuItem>
+                        <MenuItem value="Urgente">Urgente</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </>
+                )}
               </Box>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 3 }}>

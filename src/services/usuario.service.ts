@@ -1,6 +1,6 @@
 // src/services/usuario.service.ts
 import api from '../api/api';
-import type { Usuario, CreateUsuarioDTO, UpdateUsuarioDTO } from '../types/usuario';
+import type { Usuario, CreateUsuarioDTO, UpdateUsuarioDTO, IUpdateProfileDTO, IUpdateProfileResponseDTO } from '../types/usuario';
 
 export class UsuarioService {
   private static baseUrl = '/usuarios';
@@ -55,6 +55,17 @@ export class UsuarioService {
       await api.delete(`${this.baseUrl}/${id}`);
     } catch (error) {
       console.error(`Erro ao desativar usuário ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // Atualizar perfil próprio
+  static async updateProfile(data: IUpdateProfileDTO): Promise<IUpdateProfileResponseDTO> {
+    try {
+      const response = await api.put<IUpdateProfileResponseDTO>(`${this.baseUrl}/perfil`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao atualizar perfil:', error);
       throw error;
     }
   }

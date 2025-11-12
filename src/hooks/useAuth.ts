@@ -3,8 +3,12 @@
 
 import { useState, useEffect } from 'react';
 
+export type UserRole = 'Morador' | 'Porteiro' | 'Administrador' | 'Síndico';
+
 interface User {
   nomeUsuario: string;
+  role?: UserRole;
+  email?: string;
   loggedIn: boolean;
 }
 
@@ -33,7 +37,46 @@ export function useAuth() {
 
   const logout = () => {
     localStorage.removeItem('usuario');
+    localStorage.removeItem('token');
     setUser(null);
+  };
+
+  // Verificar permissões
+  const hasRole = (...roles: UserRole[]): boolean => {
+    if (!user || !user.role) return false;
+    return roles.includes(user.role);
+  };
+
+  const canCreateAviso = (): boolean => {
+    return hasRole('Porteiro', 'Administrador', 'Síndico');
+  };
+
+  const canModifyDenuncia = (): boolean => {
+    return hasRole('Porteiro', 'Administrador', 'Síndico');
+  };
+
+  const canManageUsers = (): boolean => {
+    return hasRole('Administrador', 'Síndico');
+  };
+
+  const getRoleIcon = (): string => {
+    switch (user?.role) {
+      case 'Síndico': return '👑';
+      case 'Administrador': return '🔧';
+      case 'Porteiro': return '🚪';
+      case 'Morador': return '🏠';
+      default: return '👤';
+    }
+  };
+
+  const getRoleColor = (): string => {
+    switch (user?.role) {
+      case 'Síndico': return '#FFD700';
+      case 'Administrador': return '#FF6B6B';
+      case 'Porteiro': return '#4ECDC4';
+      case 'Morador': return '#95E1D3';
+      default: return '#CCCCCC';
+    }
   };
 
   return {
@@ -42,5 +85,11 @@ export function useAuth() {
     isAuthenticated: !!user,
     login,
     logout,
+    hasRole,
+    canCreateAviso,
+    canModifyDenuncia,
+    canManageUsers,
+    getRoleIcon,
+    getRoleColor,
   };
 }

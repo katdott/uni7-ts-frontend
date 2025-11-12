@@ -7,6 +7,7 @@ export type DenunciaPrioridade = 'Baixa' | 'Média' | 'Alta' | 'Urgente';
 export interface Denuncia {
   IdDenuncia: number;
   IdUsuario: number;
+  IdCategoria?: number | null;
   Nome: string;
   Descricao: string;
   Status: DenunciaStatus;
@@ -14,8 +15,15 @@ export interface Denuncia {
   Ativa: boolean;
   Inclusao: string;
   Atualizacao: string;
+  DataResolucao?: string | null;
   usuario?: {
     IdUsuario: number;
     NomeUsuario: string;
+  };
+  categoria?: {
+    IdCategoria: number;
+    Nome: string;
+    Cor: string | null;
+    Icone: string | null;
   };
 }

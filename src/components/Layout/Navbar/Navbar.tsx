@@ -19,18 +19,23 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
+import PersonIcon from '@mui/icons-material/Person';
 import HomeIcon from '@mui/icons-material/Home';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useThemeMode } from '@/hooks/useThemeMode';
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, getRoleIcon, getRoleColor } = useAuth();
+  const { mode, toggleTheme } = useThemeMode();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const isActive = (path: string) => pathname === path;
@@ -54,7 +59,7 @@ export function Navbar() {
       position="sticky" 
       elevation={0}
       sx={{
-        backgroundColor: 'white',
+        backgroundColor: 'background.paper',
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}
@@ -190,6 +195,20 @@ export function Navbar() {
                   </Badge>
                 </IconButton>
 
+                {/* Theme Toggle Button */}
+                <IconButton
+                  onClick={toggleTheme}
+                  sx={{
+                    color: 'text.secondary',
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                    },
+                  }}
+                  title={mode === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+                >
+                  {mode === 'light' ? <Brightness4Icon /> : <Brightness7Icon />}
+                </IconButton>
+
                 {/* User Menu */}
                 <Box
                   onClick={handleMenuOpen}
@@ -229,15 +248,26 @@ export function Navbar() {
                     >
                       {user.nomeUsuario}
                     </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: 'text.secondary',
-                        lineHeight: 1,
-                      }}
-                    >
-                      Administrador
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontSize: '0.7rem',
+                          color: getRoleColor(),
+                        }}
+                      >
+                        {getRoleIcon()}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: 'text.secondary',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {user.role || 'Morador'}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
                 <Menu
@@ -266,9 +296,23 @@ export function Navbar() {
                       {user.nomeUsuario}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      Administrador do Sistema
+                      {user.role || 'Morador'}
                     </Typography>
                   </Box>
+                  <Divider />
+                  <MenuItem
+                    component={Link}
+                    href="/perfil"
+                    onClick={handleMenuClose}
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      gap: 1.5,
+                    }}
+                  >
+                    <PersonIcon fontSize="small" />
+                    Meu Perfil
+                  </MenuItem>
                   <Divider />
                   <MenuItem
                     onClick={handleLogout}
@@ -285,18 +329,34 @@ export function Navbar() {
                 </Menu>
               </>
             ) : (
-              <Button
-                component={Link}
-                href="/login"
-                variant="contained"
-                startIcon={<LoginIcon />}
-                sx={{
-                  borderRadius: '10px',
-                  px: 3,
-                }}
-              >
-                Entrar
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {/* Theme Toggle Button for non-authenticated users */}
+                <IconButton
+                  onClick={toggleTheme}
+                  sx={{
+                    color: 'text.secondary',
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                    },
+                  }}
+                  title={mode === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+                >
+                  {mode === 'light' ? <Brightness4Icon /> : <Brightness7Icon />}
+                </IconButton>
+                
+                <Button
+                  component={Link}
+                  href="/login"
+                  variant="contained"
+                  startIcon={<LoginIcon />}
+                  sx={{
+                    borderRadius: '10px',
+                    px: 3,
+                  }}
+                >
+                  Entrar
+                </Button>
+              </Box>
             )}
           </Box>
         </Toolbar>

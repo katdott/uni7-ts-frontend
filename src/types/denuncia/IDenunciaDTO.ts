@@ -4,9 +4,9 @@
 import { DenunciaStatus, DenunciaPrioridade } from './Denuncia.model';
 
 export interface CreateDenunciaDTO {
-  IdUsuario: number;
   Nome: string;
   Descricao: string;
+  IdCategoria?: number;
   Status?: DenunciaStatus;
   Prioridade?: DenunciaPrioridade;
 }
@@ -14,6 +14,7 @@ export interface CreateDenunciaDTO {
 export interface UpdateDenunciaDTO {
   Nome?: string;
   Descricao?: string;
+  IdCategoria?: number;
   Status?: DenunciaStatus;
   Prioridade?: DenunciaPrioridade;
 }

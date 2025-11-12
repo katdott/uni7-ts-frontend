@@ -40,8 +40,8 @@ export default function CadastroPage() {
       return;
     }
 
-    if (formData.senha.length < 4) {
-      setError('A senha deve ter pelo menos 4 caracteres');
+    if (formData.senha.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
@@ -132,7 +132,7 @@ export default function CadastroPage() {
                   required
                   fullWidth
                   disabled={loading || success}
-                  helperText="Mínimo de 4 caracteres"
+                  helperText="Mínimo de 6 caracteres"
                 />
 
                 <TextField

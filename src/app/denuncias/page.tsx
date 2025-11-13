@@ -1,7 +1,7 @@
 // src/app/denuncias/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -49,13 +49,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingIcon from '@mui/icons-material/Pending';
 import ErrorIcon from '@mui/icons-material/Error';
 import { DenunciaService } from '../../services/denuncia.service';
-import type { Denuncia, CreateDenunciaDTO, UpdateDenunciaDTO } from '../../types/denuncia';
+import type { Denuncia, CreateDenunciaDTO, UpdateDenunciaDTO, DenunciaStatus, DenunciaPrioridade } from '../../types/denuncia';
 import { ProtectedRoute } from '@/components/ProtectedRoute/ProtectedRoute';
 import type { Categoria } from '@/types/categoria';
 import { CategoriaService } from '@/services/categoria.service';
-
-type DenunciaStatus = 'Aberta' | 'Em análise' | 'Resolvida' | 'Rejeitada';
-type DenunciaPrioridade = 'Baixa' | 'Média' | 'Alta' | 'Urgente';
+import { useToast } from '@/contexts/ToastContext';
+import DenunciaModal from '@/components/Modals/DenunciaModal';
+import ConfirmDialog from '@/components/ConfirmDialog/ConfirmDialog';
 
 export default function DenunciasPage() {
   const [denuncias, setDenuncias] = useState<Denuncia[]>([]);
@@ -64,13 +64,6 @@ export default function DenunciasPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDenuncia, setEditingDenuncia] = useState<Denuncia | null>(null);
-  const [formData, setFormData] = useState({ 
-    Nome: '', 
-    Descricao: '', 
-    IdCategoria: undefined as number | undefined,
-    Prioridade: 'Média' as DenunciaPrioridade,
-    Status: 'Aberta' as DenunciaStatus
-  });
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -78,6 +71,8 @@ export default function DenunciasPage() {
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; denunciaId: number | null }>({ open: false, denunciaId: null });
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     loadDenuncias();
@@ -129,80 +124,49 @@ export default function DenunciasPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      if (editingDenuncia) {
-        const updateData: UpdateDenunciaDTO = {
-          Nome: formData.Nome,
-          Descricao: formData.Descricao,
-          Status: formData.Status,
-          Prioridade: formData.Prioridade,
-        };
-        await DenunciaService.update(editingDenuncia.IdDenuncia, updateData);
-      } else {
-        const createData: CreateDenunciaDTO = {
-          Nome: formData.Nome,
-          Descricao: formData.Descricao,
-          IdCategoria: formData.IdCategoria,
-          Prioridade: formData.Prioridade,
-        };
-        await DenunciaService.create(createData);
-      }
-      setIsModalOpen(false);
-      setFormData({ 
-        Nome: '', 
-        Descricao: '', 
-        IdCategoria: undefined,
-        Prioridade: 'Média',
-        Status: 'Aberta'
-      });
-      setEditingDenuncia(null);
-      loadDenuncias();
-    } catch (err) {
-      setError('Erro ao salvar denúncia.');
-      console.error(err);
-    }
+  const handleOpenModal = (denuncia?: Denuncia) => {
+    setEditingDenuncia(denuncia || null);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingDenuncia(null);
+  };
+
+  const handleSuccess = () => {
+    loadDenuncias();
+    showSuccess('Denúncia salva com sucesso!');
   };
 
   const handleEdit = (denuncia: Denuncia) => {
-    setEditingDenuncia(denuncia);
-    setFormData({
-      Nome: denuncia.Nome,
-      Descricao: denuncia.Descricao,
-      IdCategoria: denuncia.IdCategoria || undefined,
-      Prioridade: denuncia.Prioridade || 'Média',
-      Status: denuncia.Status || 'Aberta',
-    });
-    setIsModalOpen(true);
     handleMenuClose(denuncia.IdDenuncia);
+    handleOpenModal(denuncia);
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir esta denúncia?')) {
-      try {
-        await DenunciaService.deactivate(id);
-        loadDenuncias();
-      } catch (err) {
-        setError('Erro ao excluir denúncia.');
-        console.error(err);
-      }
-    }
+  const handleDeleteClick = (id: number) => {
     handleMenuClose(id);
+    setConfirmDialog({ open: true, denunciaId: id });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (confirmDialog.denunciaId === null) return;
+
+    try {
+      await DenunciaService.deactivate(confirmDialog.denunciaId);
+      showSuccess('Denúncia excluída com sucesso!');
+      loadDenuncias();
+    } catch (err) {
+      showError('Erro ao excluir denúncia.');
+      console.error(err);
+    } finally {
+      setConfirmDialog({ open: false, denunciaId: null });
+    }
   };
 
   const openCreateModal = () => {
-    setEditingDenuncia(null);
-    setFormData({ 
-      Nome: '', 
-      Descricao: '', 
-      IdCategoria: undefined,
-      Prioridade: 'Média',
-      Status: 'Aberta'
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: number) => {
+    handleOpenModal();
+  };  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: number) => {
     setAnchorEl({ ...anchorEl, [id]: event.currentTarget });
   };
 
@@ -260,16 +224,51 @@ export default function DenunciasPage() {
 
   return (
     <ProtectedRoute>
-      <Box sx={{ backgroundColor: 'background.default', minHeight: 'calc(100vh - 70px)', py: 4 }}>
+      <Box 
+        sx={{ 
+          minHeight: 'calc(100vh - 72px)', 
+          py: 4,
+          background: (theme) => theme.palette.mode === 'light'
+            ? 'linear-gradient(135deg, #F9FAFB 0%, #EEF2FF 100%)'
+            : 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)',
+        }}
+      >
         <Container maxWidth="xl">
-          {/* Header */}
-          <Box sx={{ mb: 4 }}>
+          {/* Header com Glassmorphism */}
+          <Box 
+            sx={{ 
+              mb: 4,
+              p: 3,
+              borderRadius: '24px',
+              background: (theme) => theme.palette.mode === 'light'
+                ? 'rgba(255, 255, 255, 0.7)'
+                : 'rgba(30, 41, 59, 0.7)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid',
+              borderColor: (theme) => theme.palette.mode === 'light'
+                ? 'rgba(99, 102, 241, 0.1)'
+                : 'rgba(129, 140, 248, 0.2)',
+              boxShadow: '0px 8px 32px rgba(99, 102, 241, 0.1)',
+            }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5 }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 800, 
+                    mb: 0.5,
+                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
                   Denúncias e Ocorrências
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
                   Gerencie e acompanhe todas as denúncias do condomínio
                 </Typography>
               </Box>
@@ -279,13 +278,43 @@ export default function DenunciasPage() {
                 startIcon={<AddIcon />}
                 onClick={openCreateModal}
                 size="large"
+                sx={{
+                  borderRadius: '16px',
+                  px: 3,
+                  py: 1.5,
+                  background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                  boxShadow: '0px 4px 16px rgba(239, 68, 68, 0.3)',
+                  fontWeight: 700,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0px 6px 20px rgba(239, 68, 68, 0.4)',
+                  },
+                }}
               >
                 Nova Denúncia
               </Button>
             </Box>
 
-            {/* Toolbar */}
-            <Paper sx={{ p: 2, mt: 3, borderRadius: '12px' }}>
+            {/* Toolbar com Glassmorphism */}
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 2.5, 
+                mt: 3, 
+                borderRadius: '20px',
+                background: (theme) => theme.palette.mode === 'light'
+                  ? 'rgba(255, 255, 255, 0.7)'
+                  : 'rgba(30, 41, 59, 0.7)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid',
+                borderColor: (theme) => theme.palette.mode === 'light'
+                  ? 'rgba(99, 102, 241, 0.1)'
+                  : 'rgba(129, 140, 248, 0.2)',
+                boxShadow: '0px 4px 24px rgba(99, 102, 241, 0.08)',
+              }}
+            >
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <TextField
                   placeholder="Buscar denúncias..."
@@ -441,7 +470,7 @@ export default function DenunciasPage() {
                             <EditIcon fontSize="small" sx={{ mr: 1 }} />
                             Editar
                           </MenuItem>
-                          <MenuItem onClick={() => handleDelete(denuncia.IdDenuncia)} sx={{ color: 'error.main' }}>
+                          <MenuItem onClick={() => handleDeleteClick(denuncia.IdDenuncia)} sx={{ color: 'error.main' }}>
                             <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
                             Excluir
                           </MenuItem>
@@ -572,7 +601,7 @@ export default function DenunciasPage() {
                         <IconButton color="primary" onClick={() => handleEdit(denuncia)}>
                           <EditIcon />
                         </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(denuncia.IdDenuncia)}>
+                        <IconButton color="error" onClick={() => handleDeleteClick(denuncia.IdDenuncia)}>
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -583,110 +612,24 @@ export default function DenunciasPage() {
             </Box>
           )}
 
-          {/* Modal */}
-          <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ fontWeight: 600, fontSize: '1.5rem' }}>
-              {editingDenuncia ? 'Editar Denúncia' : 'Nova Denúncia'}
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
-                <TextField
-                  label="Título da Denúncia"
-                  value={formData.Nome}
-                  onChange={(e) => setFormData({ ...formData, Nome: e.target.value })}
-                  required
-                  fullWidth
-                  placeholder="Ex: Barulho excessivo - Apto 301"
-                />
-                <TextField
-                  label="Descrição Detalhada"
-                  value={formData.Descricao}
-                  onChange={(e) => setFormData({ ...formData, Descricao: e.target.value })}
-                  required
-                  multiline
-                  rows={6}
-                  fullWidth
-                  placeholder="Descreva a ocorrência com detalhes..."
-                />
-                
-                {!editingDenuncia && (
-                  <>
-                    <FormControl fullWidth>
-                      <InputLabel>Categoria</InputLabel>
-                      <Select
-                        value={formData.IdCategoria || ''}
-                        onChange={(e) => setFormData({ ...formData, IdCategoria: e.target.value as number })}
-                        label="Categoria"
-                      >
-                        <MenuItem value="">
-                          <em>Nenhuma</em>
-                        </MenuItem>
-                        {categorias.map((cat) => (
-                          <MenuItem key={cat.IdCategoria} value={cat.IdCategoria}>
-                            {cat.Icone} {cat.Nome}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+          {/* Modal de Criar/Editar */}
+          <DenunciaModal
+            open={isModalOpen}
+            onClose={handleCloseModal}
+            onSuccess={handleSuccess}
+            denuncia={editingDenuncia}
+          />
 
-                    <FormControl fullWidth>
-                      <InputLabel>Prioridade</InputLabel>
-                      <Select
-                        value={formData.Prioridade}
-                        onChange={(e) => setFormData({ ...formData, Prioridade: e.target.value as DenunciaPrioridade })}
-                        label="Prioridade"
-                      >
-                        <MenuItem value="Baixa">Baixa</MenuItem>
-                        <MenuItem value="Média">Média</MenuItem>
-                        <MenuItem value="Alta">Alta</MenuItem>
-                        <MenuItem value="Urgente">Urgente</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </>
-                )}
-
-                {editingDenuncia && (
-                  <>
-                    <FormControl fullWidth>
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        value={formData.Status}
-                        onChange={(e) => setFormData({ ...formData, Status: e.target.value as DenunciaStatus })}
-                        label="Status"
-                      >
-                        <MenuItem value="Aberta">Aberta</MenuItem>
-                        <MenuItem value="Em análise">Em análise</MenuItem>
-                        <MenuItem value="Resolvida">Resolvida</MenuItem>
-                        <MenuItem value="Rejeitada">Rejeitada</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <FormControl fullWidth>
-                      <InputLabel>Prioridade</InputLabel>
-                      <Select
-                        value={formData.Prioridade}
-                        onChange={(e) => setFormData({ ...formData, Prioridade: e.target.value as DenunciaPrioridade })}
-                        label="Prioridade"
-                      >
-                        <MenuItem value="Baixa">Baixa</MenuItem>
-                        <MenuItem value="Média">Média</MenuItem>
-                        <MenuItem value="Alta">Alta</MenuItem>
-                        <MenuItem value="Urgente">Urgente</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </>
-                )}
-              </Box>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 3 }}>
-              <Button onClick={() => setIsModalOpen(false)} color="inherit">
-                Cancelar
-              </Button>
-              <Button onClick={handleSubmit} variant="contained" color="error">
-                {editingDenuncia ? 'Atualizar Denúncia' : 'Registrar Denúncia'}
-              </Button>
-            </DialogActions>
-          </Dialog>
+          <ConfirmDialog
+            open={confirmDialog.open}
+            onClose={() => setConfirmDialog({ open: false, denunciaId: null })}
+            onConfirm={handleDeleteConfirm}
+            title="Excluir Denúncia"
+            message="Tem certeza que deseja excluir esta denúncia? Esta ação não pode ser desfeita."
+            confirmText="Excluir"
+            cancelText="Cancelar"
+            severity="error"
+          />
         </Container>
       </Box>
     </ProtectedRoute>

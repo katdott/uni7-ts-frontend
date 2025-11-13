@@ -1,7 +1,7 @@
 // src/app/avisos/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -44,6 +44,9 @@ import { AvisoService } from '../../services/aviso.service';
 import type { Aviso, CreateAvisoDTO, UpdateAvisoDTO } from '../../types/aviso';
 import { ProtectedRoute } from '@/components/ProtectedRoute/ProtectedRoute';
 import { Stack } from '@mui/material';
+import { useToast } from '@/contexts/ToastContext';
+import AvisoModal from '@/components/Modals/AvisoModal';
+import ConfirmDialog from '@/components/ConfirmDialog/ConfirmDialog';
 
 export default function AvisosPage() {
   const [avisos, setAvisos] = useState<Aviso[]>([]);
@@ -51,29 +54,17 @@ export default function AvisosPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAviso, setEditingAviso] = useState<Aviso | null>(null);
-  const [formData, setFormData] = useState({ 
-    Nome: '', 
-    Descricao: '',
-    DataEvento: '' 
-  });
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [anchorEl, setAnchorEl] = useState<{ [key: number]: HTMLElement | null }>({});
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; avisoId: number | null }>({
+    open: false,
+    avisoId: null,
+  });
+  const { showSuccess, showError } = useToast();
 
-  useEffect(() => {
-    loadAvisos();
-  }, []);
-
-  useEffect(() => {
-    const filtered = avisos.filter((aviso) =>
-      aviso.Nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      aviso.Descricao.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredAvisos(filtered);
-  }, [searchTerm, avisos]);
-
-  const loadAvisos = async () => {
+  const loadAvisos = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -86,82 +77,85 @@ export default function AvisosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSubmit = async () => {
-    try {
-      if (editingAviso) {
-        const updateData: UpdateAvisoDTO = {
-          Nome: formData.Nome,
-          Descricao: formData.Descricao,
-          DataEvento: formData.DataEvento || undefined,
-        };
-        await AvisoService.update(editingAviso.IdAviso, updateData);
-      } else {
-        const createData: CreateAvisoDTO = {
-          Nome: formData.Nome,
-          Descricao: formData.Descricao,
-          DataEvento: formData.DataEvento || undefined,
-        };
-        await AvisoService.create(createData);
-      }
-      setIsModalOpen(false);
-      setFormData({ Nome: '', Descricao: '', DataEvento: '' });
-      setEditingAviso(null);
-      loadAvisos();
-    } catch (err) {
-      setError('Erro ao salvar aviso.');
-      console.error(err);
-    }
-  };
+  useEffect(() => {
+    loadAvisos();
+  }, [loadAvisos]);
 
-  const handleEdit = (aviso: Aviso) => {
-    setEditingAviso(aviso);
-    setFormData({
-      Nome: aviso.Nome,
-      Descricao: aviso.Descricao,
-      DataEvento: aviso.DataEvento ? new Date(aviso.DataEvento).toISOString().slice(0, 16) : '',
-    });
+  // Filtro com debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const filtered = avisos.filter((aviso) =>
+        aviso.Nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        aviso.Descricao.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredAvisos(filtered);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, avisos]);
+
+  const handleOpenModal = useCallback((aviso?: Aviso) => {
+    setEditingAviso(aviso || null);
     setIsModalOpen(true);
-    handleMenuClose(aviso.IdAviso);
-  };
+  }, []);
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este aviso?')) {
-      try {
-        await AvisoService.deactivate(id);
-        loadAvisos();
-      } catch (err) {
-        setError('Erro ao excluir aviso.');
-        console.error(err);
-      }
-    }
-    handleMenuClose(id);
-  };
-
-  const openCreateModal = () => {
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
     setEditingAviso(null);
-    setFormData({ Nome: '', Descricao: '', DataEvento: '' });
-    setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, id: number) => {
-    setAnchorEl({ ...anchorEl, [id]: event.currentTarget });
-  };
+  const handleSuccess = useCallback(() => {
+    loadAvisos();
+    showSuccess('Aviso salvo com sucesso!');
+  }, [loadAvisos, showSuccess]);
 
-  const handleMenuClose = (id: number) => {
-    setAnchorEl({ ...anchorEl, [id]: null });
-  };
+  const handleMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>, avisoId: number) => {
+    setAnchorEl((prev) => ({ ...prev, [avisoId]: event.currentTarget }));
+  }, []);
 
-  const formatDate = (dateString: string) => {
+  const handleMenuClose = useCallback((avisoId: number) => {
+    setAnchorEl((prev) => ({ ...prev, [avisoId]: null }));
+  }, []);
+
+  const handleEdit = useCallback((aviso: Aviso) => {
+    handleMenuClose(aviso.IdAviso);
+    handleOpenModal(aviso);
+  }, [handleMenuClose, handleOpenModal]);
+
+  const handleDeleteClick = useCallback((id: number) => {
+    handleMenuClose(id);
+    setConfirmDialog({ open: true, avisoId: id });
+  }, [handleMenuClose]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!confirmDialog.avisoId) return;
+
+    try {
+      await AvisoService.deactivate(confirmDialog.avisoId);
+      loadAvisos();
+      showSuccess('Aviso excluído com sucesso!');
+    } catch (err) {
+      showError('Erro ao excluir aviso');
+    } finally {
+      setConfirmDialog({ open: false, avisoId: null });
+    }
+  }, [confirmDialog.avisoId, loadAvisos, showSuccess, showError]);
+
+  const openCreateModal = useCallback(() => {
+    handleOpenModal();
+  }, [handleOpenModal]);
+
+  const formatDate = useMemo(() => (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
-  };
+  }, []);
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = useMemo(() => (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -169,20 +163,55 @@ export default function AvisosPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
+  }, []);
 
   return (
     <ProtectedRoute>
-      <Box sx={{ backgroundColor: 'background.default', minHeight: 'calc(100vh - 70px)', py: 4 }}>
+      <Box 
+        sx={{ 
+          minHeight: 'calc(100vh - 72px)', 
+          py: 4,
+          background: (theme) => theme.palette.mode === 'light'
+            ? 'linear-gradient(135deg, #F9FAFB 0%, #EEF2FF 100%)'
+            : 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)',
+        }}
+      >
         <Container maxWidth="xl">
-          {/* Header */}
-          <Box sx={{ mb: 4 }}>
+          {/* Header com Glassmorphism */}
+          <Box 
+            sx={{ 
+              mb: 4,
+              p: 3,
+              borderRadius: '24px',
+              background: (theme) => theme.palette.mode === 'light'
+                ? 'rgba(255, 255, 255, 0.7)'
+                : 'rgba(30, 41, 59, 0.7)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid',
+              borderColor: (theme) => theme.palette.mode === 'light'
+                ? 'rgba(99, 102, 241, 0.1)'
+                : 'rgba(129, 140, 248, 0.2)',
+              boxShadow: '0px 8px 32px rgba(99, 102, 241, 0.1)',
+            }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5 }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 800, 
+                    mb: 0.5,
+                    background: 'linear-gradient(135deg, #6366F1 0%, #EC4899 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
                   Avisos do Condomínio
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
                   Gerencie e acompanhe todos os comunicados
                 </Typography>
               </Box>
@@ -192,13 +221,43 @@ export default function AvisosPage() {
                 startIcon={<AddIcon />}
                 onClick={openCreateModal}
                 size="large"
+                sx={{
+                  borderRadius: '16px',
+                  px: 3,
+                  py: 1.5,
+                  background: 'linear-gradient(135deg, #6366F1 0%, #EC4899 100%)',
+                  boxShadow: '0px 4px 16px rgba(99, 102, 241, 0.3)',
+                  fontWeight: 700,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #4F46E5 0%, #DB2777 100%)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0px 6px 20px rgba(99, 102, 241, 0.4)',
+                  },
+                }}
               >
                 Novo Aviso
               </Button>
             </Box>
 
-            {/* Toolbar */}
-            <Paper sx={{ p: 2, mt: 3, borderRadius: '12px' }}>
+            {/* Toolbar com Glassmorphism */}
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 2.5, 
+                mt: 3, 
+                borderRadius: '20px',
+                background: (theme) => theme.palette.mode === 'light'
+                  ? 'rgba(255, 255, 255, 0.7)'
+                  : 'rgba(30, 41, 59, 0.7)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid',
+                borderColor: (theme) => theme.palette.mode === 'light'
+                  ? 'rgba(99, 102, 241, 0.1)'
+                  : 'rgba(129, 140, 248, 0.2)',
+                boxShadow: '0px 4px 24px rgba(99, 102, 241, 0.08)',
+              }}
+            >
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <TextField
                   placeholder="Buscar avisos..."
@@ -306,7 +365,7 @@ export default function AvisosPage() {
                             <EditIcon fontSize="small" sx={{ mr: 1 }} />
                             Editar
                           </MenuItem>
-                          <MenuItem onClick={() => handleDelete(aviso.IdAviso)} sx={{ color: 'error.main' }}>
+                          <MenuItem onClick={() => handleDeleteClick(aviso.IdAviso)} sx={{ color: 'error.main' }}>
                             <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
                             Excluir
                           </MenuItem>
@@ -418,7 +477,7 @@ export default function AvisosPage() {
                         <IconButton color="primary" onClick={() => handleEdit(aviso)}>
                           <EditIcon />
                         </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(aviso.IdAviso)}>
+                        <IconButton color="error" onClick={() => handleDeleteClick(aviso.IdAviso)}>
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -429,53 +488,24 @@ export default function AvisosPage() {
             </Box>
           )}
 
-          {/* Modal */}
-          <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ fontWeight: 600, fontSize: '1.5rem' }}>
-              {editingAviso ? 'Editar Aviso' : 'Novo Aviso'}
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
-                <TextField
-                  label="Título do Aviso"
-                  value={formData.Nome}
-                  onChange={(e) => setFormData({ ...formData, Nome: e.target.value })}
-                  required
-                  fullWidth
-                  placeholder="Ex: Manutenção do elevador"
-                />
-                <TextField
-                  label="Descrição"
-                  value={formData.Descricao}
-                  onChange={(e) => setFormData({ ...formData, Descricao: e.target.value })}
-                  required
-                  multiline
-                  rows={6}
-                  fullWidth
-                  placeholder="Descreva os detalhes do aviso..."
-                />
-                <TextField
-                  label="Data/Hora do Evento (Opcional)"
-                  type="datetime-local"
-                  value={formData.DataEvento}
-                  onChange={(e) => setFormData({ ...formData, DataEvento: e.target.value })}
-                  fullWidth
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  helperText="Se o aviso se refere a um evento futuro, informe a data e hora"
-                />
-              </Box>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 3 }}>
-              <Button onClick={() => setIsModalOpen(false)} color="inherit">
-                Cancelar
-              </Button>
-              <Button onClick={handleSubmit} variant="contained" color="primary">
-                {editingAviso ? 'Atualizar Aviso' : 'Criar Aviso'}
-              </Button>
-            </DialogActions>
-          </Dialog>
+          {/* Modal de Criar/Editar */}
+          <AvisoModal
+            open={isModalOpen}
+            onClose={handleCloseModal}
+            onSuccess={handleSuccess}
+            aviso={editingAviso}
+          />
+
+          <ConfirmDialog
+            open={confirmDialog.open}
+            onClose={() => setConfirmDialog({ open: false, avisoId: null })}
+            onConfirm={handleDeleteConfirm}
+            title="Excluir Aviso"
+            message="Tem certeza que deseja excluir este aviso? Esta ação não pode ser desfeita."
+            confirmText="Excluir"
+            cancelText="Cancelar"
+            severity="error"
+          />
         </Container>
       </Box>
     </ProtectedRoute>

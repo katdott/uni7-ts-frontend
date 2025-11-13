@@ -5,9 +5,11 @@ import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { getTheme } from '../theme';
-import { Navbar } from '../components/Layout/Navbar/Navbar';
+import { Sidebar } from '../components/Layout/Sidebar';
 import { ThemeProvider, useThemeMode } from '../hooks/useThemeMode';
 import { AuthProvider } from '../hooks/useAuth';
+import { ToastProvider } from '../contexts/ToastContext';
+import { Box } from '@mui/material';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const { mode } = useThemeMode();
@@ -16,8 +18,20 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
-      <Navbar />
-      <main>{children}</main>
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar />
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 4,
+            width: '100%',
+            minHeight: '100vh',
+          }}
+        >
+          {children}
+        </Box>
+      </Box>
     </MuiThemeProvider>
   );
 }
@@ -29,11 +43,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link 
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" 
+          rel="stylesheet" 
+        />
+      </head>
       <body style={{ margin: 0 }}>
         <AppRouterCacheProvider>
           <ThemeProvider>
             <AuthProvider>
-              <LayoutContent>{children}</LayoutContent>
+              <ToastProvider>
+                <LayoutContent>{children}</LayoutContent>
+              </ToastProvider>
             </AuthProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>

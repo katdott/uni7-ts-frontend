@@ -1,7 +1,7 @@
 // src/hooks/useAuth.ts
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
 export type UserRole = 'Morador' | 'Porteiro' | 'Administrador' | 'Síndico';
 
@@ -12,12 +12,39 @@ interface User {
   loggedIn: boolean;
 }
 
-export function useAuth() {
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  login: (userData: User) => void;
+  logout: () => void;
+  hasRole: (...roles: UserRole[]) => boolean;
+  canCreateAviso: () => boolean;
+  canModifyDenuncia: () => boolean;
+  canManageUsers: () => boolean;
+  getRoleIcon: () => string;
+  getRoleColor: () => string;
+}
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  isAuthenticated: false,
+  login: () => {},
+  logout: () => {},
+  hasRole: () => false,
+  canCreateAviso: () => false,
+  canModifyDenuncia: () => false,
+  canManageUsers: () => false,
+  getRoleIcon: () => '👤',
+  getRoleColor: () => '#CCCCCC',
+});
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar se há usuário logado no localStorage
     const storedUser = localStorage.getItem('usuario');
     if (storedUser) {
       try {
@@ -41,7 +68,6 @@ export function useAuth() {
     setUser(null);
   };
 
-  // Verificar permissões
   const hasRole = (...roles: UserRole[]): boolean => {
     if (!user || !user.role) return false;
     return roles.includes(user.role);
@@ -79,7 +105,7 @@ export function useAuth() {
     }
   };
 
-  return {
+  const contextValue = {
     user,
     loading,
     isAuthenticated: !!user,
@@ -92,4 +118,12 @@ export function useAuth() {
     getRoleIcon,
     getRoleColor,
   };
+
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
+
+export const useAuth = () => useContext(AuthContext);

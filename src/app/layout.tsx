@@ -7,6 +7,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { getTheme } from '../theme';
 import { Navbar } from '../components/Layout/Navbar/Navbar';
 import { ThemeProvider, useThemeMode } from '../hooks/useThemeMode';
+import { AuthProvider } from '../hooks/useAuth';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const { mode } = useThemeMode();
@@ -31,7 +32,9 @@ export default function RootLayout({
       <body style={{ margin: 0 }}>
         <AppRouterCacheProvider>
           <ThemeProvider>
-            <LayoutContent>{children}</LayoutContent>
+            <AuthProvider>
+              <LayoutContent>{children}</LayoutContent>
+            </AuthProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

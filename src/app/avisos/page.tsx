@@ -33,16 +33,17 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import EventIcon from '@mui/icons-material/Event';
 import { AvisoService } from '../../services/aviso.service';
 import type { Aviso, CreateAvisoDTO, UpdateAvisoDTO } from '../../types/aviso';
 import { ProtectedRoute } from '@/components/ProtectedRoute/ProtectedRoute';
+import { Stack } from '@mui/material';
 
 export default function AvisosPage() {
   const [avisos, setAvisos] = useState<Aviso[]>([]);
@@ -50,7 +51,11 @@ export default function AvisosPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAviso, setEditingAviso] = useState<Aviso | null>(null);
-  const [formData, setFormData] = useState({ Nome: '', Descricao: '', IdUsuario: '1' });
+  const [formData, setFormData] = useState({ 
+    Nome: '', 
+    Descricao: '',
+    DataEvento: '' 
+  });
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -89,18 +94,19 @@ export default function AvisosPage() {
         const updateData: UpdateAvisoDTO = {
           Nome: formData.Nome,
           Descricao: formData.Descricao,
+          DataEvento: formData.DataEvento || undefined,
         };
         await AvisoService.update(editingAviso.IdAviso, updateData);
       } else {
         const createData: CreateAvisoDTO = {
-          IdUsuario: parseInt(formData.IdUsuario),
           Nome: formData.Nome,
           Descricao: formData.Descricao,
+          DataEvento: formData.DataEvento || undefined,
         };
         await AvisoService.create(createData);
       }
       setIsModalOpen(false);
-      setFormData({ Nome: '', Descricao: '', IdUsuario: '1' });
+      setFormData({ Nome: '', Descricao: '', DataEvento: '' });
       setEditingAviso(null);
       loadAvisos();
     } catch (err) {
@@ -114,7 +120,7 @@ export default function AvisosPage() {
     setFormData({
       Nome: aviso.Nome,
       Descricao: aviso.Descricao,
-      IdUsuario: aviso.IdUsuario.toString(),
+      DataEvento: aviso.DataEvento ? new Date(aviso.DataEvento).toISOString().slice(0, 16) : '',
     });
     setIsModalOpen(true);
     handleMenuClose(aviso.IdAviso);
@@ -135,7 +141,7 @@ export default function AvisosPage() {
 
   const openCreateModal = () => {
     setEditingAviso(null);
-    setFormData({ Nome: '', Descricao: '', IdUsuario: '1' });
+    setFormData({ Nome: '', Descricao: '', DataEvento: '' });
     setIsModalOpen(true);
   };
 
@@ -208,11 +214,6 @@ export default function AvisosPage() {
                     ),
                   }}
                 />
-                <Tooltip title="Filtros">
-                  <IconButton>
-                    <FilterListIcon />
-                  </IconButton>
-                </Tooltip>
                 <Divider orientation="vertical" flexItem />
                 <ToggleButtonGroup
                   value={viewMode}
@@ -267,17 +268,29 @@ export default function AvisosPage() {
                       display: 'flex',
                       flexDirection: 'column',
                       position: 'relative',
+                      borderLeft: '4px solid #1976D2',
                     }}
                   >
                     <CardContent sx={{ flexGrow: 1, pb: 1 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                        <Chip
-                          icon={<CampaignIcon />}
-                          label="ATIVO"
-                          color="primary"
-                          size="small"
-                          sx={{ fontWeight: 600 }}
-                        />
+                        <Stack direction="row" spacing={1}>
+                          <Chip
+                            icon={<CampaignIcon />}
+                            label="ATIVO"
+                            color="primary"
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                          />
+                          {aviso.DataEvento && (
+                            <Chip
+                              icon={<EventIcon />}
+                              label="Com Evento"
+                              color="secondary"
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </Stack>
                         <IconButton
                           size="small"
                           onClick={(e) => handleMenuOpen(e, aviso.IdAviso)}
@@ -321,6 +334,14 @@ export default function AvisosPage() {
                       <Divider sx={{ my: 2 }} />
 
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {aviso.DataEvento && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <EventIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
+                            <Typography variant="caption" color="secondary.main" sx={{ fontWeight: 600 }}>
+                              Evento: {formatDateTime(aviso.DataEvento)}
+                            </Typography>
+                          </Box>
+                        )}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                           <Typography variant="caption" color="text.secondary">
@@ -330,7 +351,7 @@ export default function AvisosPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                           <Typography variant="caption" color="text.secondary">
-                            {formatDate(aviso.Inclusao)}
+                            Publicado em {formatDate(aviso.Inclusao)}
                           </Typography>
                         </Box>
                       </Box>
@@ -338,7 +359,7 @@ export default function AvisosPage() {
 
                     <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
                       <Button size="small" color="primary" startIcon={<EditIcon />} onClick={() => handleEdit(aviso)} fullWidth>
-                        Editar
+                        Gerenciar
                       </Button>
                     </CardActions>
                   </Card>
@@ -348,12 +369,21 @@ export default function AvisosPage() {
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {filteredAvisos.map((aviso) => (
-                <Card key={aviso.IdAviso}>
+                <Card key={aviso.IdAviso} sx={{ borderLeft: '4px solid #1976D2' }}>
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <Box sx={{ flexGrow: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
                           <Chip icon={<CampaignIcon />} label="ATIVO" color="primary" size="small" />
+                          {aviso.DataEvento && (
+                            <Chip
+                              icon={<EventIcon />}
+                              label="Com Evento"
+                              color="secondary"
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
                           <Typography variant="h6" sx={{ fontWeight: 600 }}>
                             {aviso.Nome}
                           </Typography>
@@ -361,7 +391,15 @@ export default function AvisosPage() {
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                           {aviso.Descricao}
                         </Typography>
-                        <Box sx={{ display: 'flex', gap: 3 }}>
+                        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                          {aviso.DataEvento && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <EventIcon sx={{ fontSize: 16, color: 'secondary.main' }} />
+                              <Typography variant="caption" color="secondary.main" sx={{ fontWeight: 600 }}>
+                                Evento: {formatDateTime(aviso.DataEvento)}
+                              </Typography>
+                            </Box>
+                          )}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <PersonIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                             <Typography variant="caption" color="text.secondary">
@@ -371,7 +409,7 @@ export default function AvisosPage() {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                             <Typography variant="caption" color="text.secondary">
-                              Criado em {formatDateTime(aviso.Inclusao)}
+                              Publicado em {formatDateTime(aviso.Inclusao)}
                             </Typography>
                           </Box>
                         </Box>
@@ -398,16 +436,6 @@ export default function AvisosPage() {
             </DialogTitle>
             <DialogContent>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
-                {!editingAviso && (
-                  <TextField
-                    label="ID do Usuário"
-                    type="number"
-                    value={formData.IdUsuario}
-                    onChange={(e) => setFormData({ ...formData, IdUsuario: e.target.value })}
-                    required
-                    fullWidth
-                  />
-                )}
                 <TextField
                   label="Título do Aviso"
                   value={formData.Nome}
@@ -425,6 +453,17 @@ export default function AvisosPage() {
                   rows={6}
                   fullWidth
                   placeholder="Descreva os detalhes do aviso..."
+                />
+                <TextField
+                  label="Data/Hora do Evento (Opcional)"
+                  type="datetime-local"
+                  value={formData.DataEvento}
+                  onChange={(e) => setFormData({ ...formData, DataEvento: e.target.value })}
+                  fullWidth
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  helperText="Se o aviso se refere a um evento futuro, informe a data e hora"
                 />
               </Box>
             </DialogContent>

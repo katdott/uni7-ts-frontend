@@ -57,23 +57,19 @@ import { CategoriaService } from '@/services/categoria.service';
 type DenunciaStatus = 'Aberta' | 'Em análise' | 'Resolvida' | 'Rejeitada';
 type DenunciaPrioridade = 'Baixa' | 'Média' | 'Alta' | 'Urgente';
 
-interface ExtendedDenuncia extends Denuncia {
-  status?: DenunciaStatus;
-  prioridade?: DenunciaPrioridade;
-}
-
 export default function DenunciasPage() {
-  const [denuncias, setDenuncias] = useState<ExtendedDenuncia[]>([]);
-  const [filteredDenuncias, setFilteredDenuncias] = useState<ExtendedDenuncia[]>([]);
+  const [denuncias, setDenuncias] = useState<Denuncia[]>([]);
+  const [filteredDenuncias, setFilteredDenuncias] = useState<Denuncia[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDenuncia, setEditingDenuncia] = useState<ExtendedDenuncia | null>(null);
+  const [editingDenuncia, setEditingDenuncia] = useState<Denuncia | null>(null);
   const [formData, setFormData] = useState({ 
     Nome: '', 
     Descricao: '', 
     IdCategoria: undefined as number | undefined,
-    Prioridade: 'Média' as DenunciaPrioridade 
+    Prioridade: 'Média' as DenunciaPrioridade,
+    Status: 'Aberta' as DenunciaStatus
   });
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,11 +91,11 @@ export default function DenunciasPage() {
     );
 
     if (filterStatus !== 'all') {
-      filtered = filtered.filter((d) => d.status === filterStatus);
+      filtered = filtered.filter((d) => d.Status === filterStatus);
     }
 
     if (filterPriority !== 'all') {
-      filtered = filtered.filter((d) => d.prioridade === filterPriority);
+      filtered = filtered.filter((d) => d.Prioridade === filterPriority);
     }
 
     if (filterCategory !== 'all') {
@@ -123,8 +119,8 @@ export default function DenunciasPage() {
       setLoading(true);
       setError(null);
       const data = await DenunciaService.getAll();
-      setDenuncias(data as ExtendedDenuncia[]);
-      setFilteredDenuncias(data as ExtendedDenuncia[]);
+      setDenuncias(data);
+      setFilteredDenuncias(data);
     } catch (err) {
       setError('Erro ao carregar denúncias. Verifique se o backend está rodando.');
       console.error(err);
@@ -139,6 +135,8 @@ export default function DenunciasPage() {
         const updateData: UpdateDenunciaDTO = {
           Nome: formData.Nome,
           Descricao: formData.Descricao,
+          Status: formData.Status,
+          Prioridade: formData.Prioridade,
         };
         await DenunciaService.update(editingDenuncia.IdDenuncia, updateData);
       } else {
@@ -155,7 +153,8 @@ export default function DenunciasPage() {
         Nome: '', 
         Descricao: '', 
         IdCategoria: undefined,
-        Prioridade: 'Média' 
+        Prioridade: 'Média',
+        Status: 'Aberta'
       });
       setEditingDenuncia(null);
       loadDenuncias();
@@ -165,13 +164,14 @@ export default function DenunciasPage() {
     }
   };
 
-  const handleEdit = (denuncia: ExtendedDenuncia) => {
+  const handleEdit = (denuncia: Denuncia) => {
     setEditingDenuncia(denuncia);
     setFormData({
       Nome: denuncia.Nome,
       Descricao: denuncia.Descricao,
       IdCategoria: denuncia.IdCategoria || undefined,
-      Prioridade: denuncia.prioridade || 'Média',
+      Prioridade: denuncia.Prioridade || 'Média',
+      Status: denuncia.Status || 'Aberta',
     });
     setIsModalOpen(true);
     handleMenuClose(denuncia.IdDenuncia);
@@ -196,7 +196,8 @@ export default function DenunciasPage() {
       Nome: '', 
       Descricao: '', 
       IdCategoria: undefined,
-      Prioridade: 'Média' 
+      Prioridade: 'Média',
+      Status: 'Aberta'
     });
     setIsModalOpen(true);
   };
@@ -411,16 +412,16 @@ export default function DenunciasPage() {
                       display: 'flex',
                       flexDirection: 'column',
                       position: 'relative',
-                      borderLeft: `4px solid ${getPriorityColor(denuncia.prioridade)}`,
+                      borderLeft: `4px solid ${getPriorityColor(denuncia.Prioridade)}`,
                     }}
                   >
                     <CardContent sx={{ flexGrow: 1, pb: 1 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                         <Stack direction="row" spacing={1}>
                           <Chip
-                            icon={getStatusIcon(denuncia.status)}
-                            label={denuncia.status}
-                            color={getStatusColor(denuncia.status) as any}
+                            icon={getStatusIcon(denuncia.Status)}
+                            label={denuncia.Status}
+                            color={getStatusColor(denuncia.Status) as any}
                             size="small"
                             sx={{ fontWeight: 600 }}
                           />
@@ -450,16 +451,16 @@ export default function DenunciasPage() {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                         <PriorityHighIcon
                           sx={{
-                            color: getPriorityColor(denuncia.prioridade),
+                            color: getPriorityColor(denuncia.Prioridade),
                             fontSize: 20,
                           }}
                         />
                         <Chip
-                          label={`Prioridade ${denuncia.prioridade}`}
+                          label={`Prioridade ${denuncia.Prioridade}`}
                           size="small"
                           sx={{
-                            backgroundColor: getPriorityColor(denuncia.prioridade) + '20',
-                            color: getPriorityColor(denuncia.prioridade),
+                            backgroundColor: getPriorityColor(denuncia.Prioridade) + '20',
+                            color: getPriorityColor(denuncia.Prioridade),
                             fontWeight: 600,
                           }}
                         />
@@ -524,24 +525,24 @@ export default function DenunciasPage() {
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {filteredDenuncias.map((denuncia) => (
-                <Card key={denuncia.IdDenuncia} sx={{ borderLeft: `4px solid ${getPriorityColor(denuncia.prioridade)}` }}>
+                <Card key={denuncia.IdDenuncia} sx={{ borderLeft: `4px solid ${getPriorityColor(denuncia.Prioridade)}` }}>
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <Box sx={{ flexGrow: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
                           <Chip
-                            icon={getStatusIcon(denuncia.status)}
-                            label={denuncia.status}
-                            color={getStatusColor(denuncia.status) as any}
+                            icon={getStatusIcon(denuncia.Status)}
+                            label={denuncia.Status}
+                            color={getStatusColor(denuncia.Status) as any}
                             size="small"
                           />
                           <Chip
                             icon={<PriorityHighIcon />}
-                            label={`${denuncia.prioridade}`}
+                            label={`${denuncia.Prioridade}`}
                             size="small"
                             sx={{
-                              backgroundColor: getPriorityColor(denuncia.prioridade) + '20',
-                              color: getPriorityColor(denuncia.prioridade),
+                              backgroundColor: getPriorityColor(denuncia.Prioridade) + '20',
+                              color: getPriorityColor(denuncia.Prioridade),
                               fontWeight: 600,
                             }}
                           />
@@ -625,6 +626,38 @@ export default function DenunciasPage() {
                             {cat.Icone} {cat.Nome}
                           </MenuItem>
                         ))}
+                      </Select>
+                    </FormControl>
+
+                    <FormControl fullWidth>
+                      <InputLabel>Prioridade</InputLabel>
+                      <Select
+                        value={formData.Prioridade}
+                        onChange={(e) => setFormData({ ...formData, Prioridade: e.target.value as DenunciaPrioridade })}
+                        label="Prioridade"
+                      >
+                        <MenuItem value="Baixa">Baixa</MenuItem>
+                        <MenuItem value="Média">Média</MenuItem>
+                        <MenuItem value="Alta">Alta</MenuItem>
+                        <MenuItem value="Urgente">Urgente</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </>
+                )}
+
+                {editingDenuncia && (
+                  <>
+                    <FormControl fullWidth>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={formData.Status}
+                        onChange={(e) => setFormData({ ...formData, Status: e.target.value as DenunciaStatus })}
+                        label="Status"
+                      >
+                        <MenuItem value="Aberta">Aberta</MenuItem>
+                        <MenuItem value="Em análise">Em análise</MenuItem>
+                        <MenuItem value="Resolvida">Resolvida</MenuItem>
+                        <MenuItem value="Rejeitada">Rejeitada</MenuItem>
                       </Select>
                     </FormControl>
 
